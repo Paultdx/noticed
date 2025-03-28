@@ -13,8 +13,8 @@ module Noticed
 
       def send_notification(device_token)
         post_request("https://fcm.googleapis.com/v1/projects/#{credentials[:project_id]}/messages:send",
-          headers: {authorization: "Bearer #{access_token}"},
-          json: format_notification(device_token))
+                     # headers: {authorization: "Bearer #{access_token}"},
+                     json: format_notification(device_token))
       rescue Noticed::ResponseUnsuccessful => exception
         if exception.response.code == "404" && config[:invalid_token]
           notification.instance_exec(device_token, &config[:invalid_token])
@@ -34,18 +34,20 @@ module Noticed
 
       def credentials
         @credentials ||= begin
-          value = evaluate_option(:credentials)
-          case value
-          when Hash
-            value
-          when Pathname
-            load_json(value)
-          when String
-            load_json(Rails.root.join(value))
-          else
-            raise ArgumentError, "FCM credentials must be a Hash, String, Pathname, or Symbol"
-          end
-        end
+                           value = evaluate_option(:credentials)
+                           case value
+                           when Hash
+                             value
+                           when Pathname
+                             load_json(value)
+                           when String
+                             load_json(Rails.root.join(value))
+                           when Google::Auth::Credentials
+                             value
+                           else
+                             raise ArgumentError, "FCM credentials must be a Hash, String, Pathname, Symbol or Google::Auth::Credentials"
+                           end
+                         end
       end
 
       def load_json(path)
